@@ -19,12 +19,26 @@ export default function Login() {
     setError(null);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data: { user }, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) throw error;
+
+      if (user) {
+        const { data: profile, error: profileError } = await supabase
+          .from('maury_profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+
+        if (profileError || profile?.role !== 'admin') {
+          await supabase.auth.signOut();
+          setError('Accesso negato. Questa area è riservata agli amministratori.');
+          return;
+        }
+      }
 
       router.push('/dashboard');
     } catch (err: any) {
