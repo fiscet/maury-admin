@@ -13,23 +13,27 @@ import {
   HardDrive,
   Building2,
   Mail,
-  UserCheck
+  UserCheck,
+  Trash2
 } from 'lucide-react';
+import { deleteDocument } from '@/app/actions/delete-document';
+import { createClient } from '@/utils/supabase/client';
 
 interface CustomerDetailClientProps {
   profile: Profile;
   documents: Document[];
 }
 
-export default function CustomerDetailClient({ profile, documents }: CustomerDetailClientProps) {
+export default function CustomerDetailClient({
+  profile,
+  documents
+}: CustomerDetailClientProps) {
   const [selectedNoteDoc, setSelectedNoteDoc] = useState<Document | null>(null);
 
   const handleDownload = async (doc: Document) => {
     try {
-      const { createClient } = require('@/utils/supabase/client');
       const supabase = createClient();
-      const { data, error } = await supabase
-        .storage
+      const { data, error } = await supabase.storage
         .from('documents')
         .createSignedUrl(doc.file_path, 60);
 
@@ -38,9 +42,23 @@ export default function CustomerDetailClient({ profile, documents }: CustomerDet
       if (data?.signedUrl) {
         window.open(data.signedUrl, '_blank');
       }
-    } catch (e: any) {
+    } catch (e) {
       console.error(e);
-      alert("Errore download");
+      alert('Errore download');
+    }
+  };
+
+  const handleDelete = async (doc: Document) => {
+    if (!confirm('Sei sicuro di voler eliminare questo documento?')) return;
+
+    try {
+      const result = await deleteDocument(doc.id, doc.file_path);
+      if (result.error) {
+        alert(result.error);
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Errore durante l'eliminazione");
     }
   };
 
@@ -93,13 +111,21 @@ export default function CustomerDetailClient({ profile, documents }: CustomerDet
               <FileText className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="text-lg font-black text-slate-900 tracking-tight italic">Documenti Caricati</h3>
-              <p className="text-sm font-medium text-slate-500">Visualizza e gestisci i file caricati dal cliente.</p>
+              <h3 className="text-lg font-black text-slate-900 tracking-tight italic">
+                Documenti Caricati
+              </h3>
+              <p className="text-sm font-medium text-slate-500">
+                Visualizza e gestisci i file caricati dal cliente.
+              </p>
             </div>
           </div>
           <div className="px-4 py-2 bg-white border border-slate-200 rounded-lg shadow-sm">
-            <span className="text-xl font-black text-slate-900">{documents.length}</span>
-            <span className="ml-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">File</span>
+            <span className="text-xl font-black text-slate-900">
+              {documents.length}
+            </span>
+            <span className="ml-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+              File
+            </span>
           </div>
         </div>
 
@@ -107,24 +133,41 @@ export default function CustomerDetailClient({ profile, documents }: CustomerDet
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/30 border-b border-slate-100">
-                <th className="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Tipo</th>
-                <th className="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Nome File</th>
-                <th className="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Periodo</th>
-                <th className="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Caricato</th>
-                <th className="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Peso</th>
-                <th className="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">Azioni</th>
+                <th className="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">
+                  Tipo
+                </th>
+                <th className="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                  Nome File
+                </th>
+                <th className="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                  Periodo
+                </th>
+                <th className="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                  Caricato
+                </th>
+                <th className="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                  Peso
+                </th>
+                <th className="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">
+                  Azioni
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {documents.map((doc) => (
-                <tr key={doc.id} className="hover:bg-slate-50/80 transition-colors group">
+                <tr
+                  key={doc.id}
+                  className="hover:bg-slate-50/80 transition-colors group"
+                >
                   <td className="px-8 py-8 text-center">
                     <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-primary/10 group-hover:text-primary transition-colors mx-auto">
                       <FileText className="w-6 h-6" />
                     </div>
                   </td>
                   <td className="px-8 py-8">
-                    <div className="font-bold text-slate-900 group-hover:text-primary transition-colors">{doc.name}</div>
+                    <div className="font-bold text-slate-900 group-hover:text-primary transition-colors">
+                      {doc.name}
+                    </div>
                   </td>
                   <td className="px-8 py-8">
                     <div className="flex items-center gap-2 text-sm font-bold text-slate-600">
@@ -153,6 +196,13 @@ export default function CustomerDetailClient({ profile, documents }: CustomerDet
                         <MessageSquare className="w-6 h-6" />
                       </button>
                       <button
+                        onClick={() => handleDelete(doc)}
+                        className="p-3 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
+                        title="Elimina Documento"
+                      >
+                        <Trash2 className="w-6 h-6" />
+                      </button>
+                      <button
                         onClick={() => handleDownload(doc)}
                         className="px-6 py-3 bg-slate-900 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-xl hover:bg-primary transition-all shadow-sm active:scale-[0.97] flex items-center gap-2"
                       >
@@ -168,7 +218,10 @@ export default function CustomerDetailClient({ profile, documents }: CustomerDet
                   <td colSpan={6} className="px-8 py-20 text-center">
                     <div className="flex flex-col items-center gap-3">
                       <FileText className="w-12 h-12 text-slate-200" />
-                      <p className="text-slate-400 font-medium italic">Nessun documento è stato ancora caricato da questo cliente.</p>
+                      <p className="text-slate-400 font-medium italic">
+                        Nessun documento è stato ancora caricato da questo
+                        cliente.
+                      </p>
                     </div>
                   </td>
                 </tr>
