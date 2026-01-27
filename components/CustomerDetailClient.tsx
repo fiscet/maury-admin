@@ -88,7 +88,8 @@ export default function CustomerDetailClient({
               <div className="w-1 h-1 rounded-full bg-slate-300" />
               <div className="flex items-center gap-1.5">
                 <UserCheck className="w-4 h-4 text-slate-400" />
-                Iscritto il {new Date(profile.created_at).toLocaleDateString()}
+                Iscritto il{' '}
+                {new Date(profile.created_at).toLocaleDateString('it-IT')}
               </div>
             </div>
           </div>
@@ -177,7 +178,7 @@ export default function CustomerDetailClient({
                   </td>
                   <td className="px-8 py-8">
                     <div className="text-sm font-medium text-slate-500">
-                      {new Date(doc.created_at).toLocaleDateString()}
+                      {new Date(doc.created_at).toLocaleDateString('it-IT')}
                     </div>
                   </td>
                   <td className="px-8 py-8">
