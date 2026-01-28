@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import NotesModal from './NotesModal';
 import { Profile, Document } from '@/types';
@@ -29,6 +29,54 @@ export default function CustomerDetailClient({
   documents
 }: CustomerDetailClientProps) {
   const [selectedNoteDoc, setSelectedNoteDoc] = useState<Document | null>(null);
+  const [docs, setDocs] = useState<Document[]>(
+    documents.map((d) => ({ ...d, notesCount: 0 }))
+  );
+
+  useEffect(() => {
+    setDocs(documents.map((d) => ({ ...d, notesCount: 0 })));
+
+    const fetchNoteCounts = async () => {
+      const supabase = createClient();
+      const docIds = documents.map((d) => d.id);
+      if (docIds.length === 0) return;
+
+      const { data } = await supabase
+        .from('maury_document_notes')
+        .select('document_id')
+        .in('document_id', docIds);
+
+      if (data) {
+        const counts: Record<string, number> = {};
+        data.forEach((note: { document_id: string }) => {
+          counts[note.document_id] = (counts[note.document_id] || 0) + 1;
+        });
+
+        setDocs((prevDocs) =>
+          prevDocs.map((doc) => ({
+            ...doc,
+            notesCount: counts[doc.id] || 0
+          }))
+        );
+      }
+    };
+
+    fetchNoteCounts();
+  }, [documents]);
+
+  const updateCountFor = async (docId: string) => {
+    const supabase = createClient();
+    const { count } = await supabase
+      .from('maury_document_notes')
+      .select('*', { count: 'exact', head: true })
+      .eq('document_id', docId);
+
+    if (count !== null) {
+      setDocs((prev) =>
+        prev.map((d) => (d.id === docId ? { ...d, notesCount: count } : d))
+      );
+    }
+  };
 
   const handleDownload = async (doc: Document) => {
     try {
@@ -100,7 +148,11 @@ export default function CustomerDetailClient({
         <NotesModal
           documentId={selectedNoteDoc.id}
           documentName={selectedNoteDoc.name}
-          onClose={() => setSelectedNoteDoc(null)}
+          onClose={() => {
+            const id = selectedNoteDoc.id;
+            setSelectedNoteDoc(null);
+            updateCountFor(id);
+          }}
         />
       )}
 
@@ -155,7 +207,7 @@ export default function CustomerDetailClient({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {documents.map((doc) => (
+              {docs.map((doc) => (
                 <tr
                   key={doc.id}
                   className="hover:bg-slate-50/80 transition-colors group"
@@ -191,10 +243,15 @@ export default function CustomerDetailClient({
                     <div className="flex justify-end gap-4">
                       <button
                         onClick={() => setSelectedNoteDoc(doc)}
-                        className="p-3 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-xl transition-all"
+                        className="relative p-3 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-xl transition-all"
                         title="Visualizza Note"
                       >
                         <MessageSquare className="w-6 h-6" />
+                        {doc.notesCount !== undefined && doc.notesCount > 0 && (
+                          <span className="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white">
+                            {doc.notesCount}
+                          </span>
+                        )}
                       </button>
                       <button
                         onClick={() => handleDelete(doc)}
