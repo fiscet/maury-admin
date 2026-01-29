@@ -2,7 +2,7 @@ import { createClient } from '@/utils/supabase/server';
 import AdminDashboardClient from '@/components/AdminDashboardClient';
 import { redirect } from 'next/navigation';
 
-export default async function Dashboard() {
+export default async function CustomerPage() {
   const supabase = await createClient();
 
   // Check if user is authenticated
@@ -31,8 +31,7 @@ export default async function Dashboard() {
     .from('maury_profiles')
     .select('*')
     .neq('role', 'admin') // Exclude admins
-    .order('created_at', { ascending: false })
-    .limit(10);
+    .order('created_at', { ascending: false });
 
   return <AdminDashboardClient initialProfiles={profiles || []} />;
 }

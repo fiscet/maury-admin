@@ -17,6 +17,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { deleteDocument } from '@/app/actions/delete-document';
+import { getDocumentDownloadUrl } from '@/app/actions/download-document';
 import { createClient } from '@/utils/supabase/client';
 
 interface CustomerDetailClientProps {
@@ -29,13 +30,9 @@ export default function CustomerDetailClient({
   documents
 }: CustomerDetailClientProps) {
   const [selectedNoteDoc, setSelectedNoteDoc] = useState<Document | null>(null);
-  const [docs, setDocs] = useState<Document[]>(
-    documents.map((d) => ({ ...d, notesCount: 0 }))
-  );
+  const [noteCounts, setNoteCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
-    setDocs(documents.map((d) => ({ ...d, notesCount: 0 })));
-
     const fetchNoteCounts = async () => {
       const supabase = createClient();
       const docIds = documents.map((d) => d.id);
@@ -51,13 +48,7 @@ export default function CustomerDetailClient({
         data.forEach((note: { document_id: string }) => {
           counts[note.document_id] = (counts[note.document_id] || 0) + 1;
         });
-
-        setDocs((prevDocs) =>
-          prevDocs.map((doc) => ({
-            ...doc,
-            notesCount: counts[doc.id] || 0
-          }))
-        );
+        setNoteCounts(counts);
       }
     };
 
@@ -72,23 +63,26 @@ export default function CustomerDetailClient({
       .eq('document_id', docId);
 
     if (count !== null) {
-      setDocs((prev) =>
-        prev.map((d) => (d.id === docId ? { ...d, notesCount: count } : d))
-      );
+      setNoteCounts((prev) => ({ ...prev, [docId]: count }));
     }
   };
 
+  const docs = documents.map((d) => ({
+    ...d,
+    notesCount: noteCounts[d.id] || 0
+  }));
+
   const handleDownload = async (doc: Document) => {
     try {
-      const supabase = createClient();
-      const { data, error } = await supabase.storage
-        .from('documents')
-        .createSignedUrl(doc.file_path, 60);
+      const { signedUrl, error } = await getDocumentDownloadUrl(doc.file_path);
 
-      if (error) throw error;
+      if (error) {
+        alert(error);
+        return;
+      }
 
-      if (data?.signedUrl) {
-        window.open(data.signedUrl, '_blank');
+      if (signedUrl) {
+        window.open(signedUrl, '_blank');
       }
     } catch (e) {
       console.error(e);

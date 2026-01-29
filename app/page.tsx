@@ -19,9 +19,12 @@ export default function Login() {
     setError(null);
 
     try {
-      const { data: { user }, error } = await supabase.auth.signInWithPassword({
+      const {
+        data: { user },
+        error
+      } = await supabase.auth.signInWithPassword({
         email,
-        password,
+        password
       });
 
       if (error) throw error;
@@ -35,19 +38,21 @@ export default function Login() {
 
         if (profileError || profile?.role !== 'admin') {
           await supabase.auth.signOut();
-          setError('Accesso negato. Questa area è riservata agli amministratori.');
+          setError(
+            'Accesso negato. Questa area è riservata agli amministratori.'
+          );
+          setLoading(false);
           return;
         }
       }
 
       router.push('/dashboard');
-    } catch (err: any) {
+    } catch (err) {
       if (err.message.includes('Invalid login credentials')) {
         setError('Email o password errati.');
       } else {
         setError('Si è verificato un errore. Riprova più tardi.');
       }
-    } finally {
       setLoading(false);
     }
   };
@@ -60,8 +65,12 @@ export default function Login() {
           <div className="w-20 h-20 bg-primary rounded-[2rem] flex items-center justify-center shadow-2xl shadow-primary/20 mx-auto mb-6 transform hover:rotate-6 transition-transform duration-300">
             <span className="text-white font-black text-3xl italic">HM</span>
           </div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight italic mb-2">Benvenuto</h1>
-          <p className="text-slate-500 font-medium">Accedi al Portale Admin di HM Management</p>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tight italic mb-2">
+            Benvenuto
+          </h1>
+          <p className="text-slate-500 font-medium">
+            Accedi al Portale Admin di HM Management
+          </p>
         </div>
 
         <div className="card-premium">
@@ -91,7 +100,11 @@ export default function Login() {
             <div className="space-y-3">
               <div className="flex justify-between items-end pr-1">
                 <label className="label-premium !mb-0">Password Segreta</label>
-                <Link href="/auth/forgot-password" title="Recupera password" className="text-[10px] font-black text-primary uppercase tracking-widest hover:text-primary-hover transition-colors">
+                <Link
+                  href="/auth/forgot-password"
+                  title="Recupera password"
+                  className="text-[10px] font-black text-primary uppercase tracking-widest hover:text-primary-hover transition-colors"
+                >
                   Dimenticata?
                 </Link>
               </div>
