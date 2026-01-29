@@ -48,7 +48,10 @@ export default function Login() {
 
       router.push('/dashboard');
     } catch (err) {
-      if (err.message.includes('Invalid login credentials')) {
+      if (
+        err instanceof Error &&
+        err.message.includes('Invalid login credentials')
+      ) {
         setError('Email o password errati.');
       } else {
         setError('Si è verificato un errore. Riprova più tardi.');
