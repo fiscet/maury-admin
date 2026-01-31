@@ -44,6 +44,11 @@ export default async function Dashboard() {
         error
       } = await adminClient.auth.admin.getUserById(profile.id);
 
+      if (error) {
+        console.error(`Error fetching user ${profile.id}:`, error);
+      }
+      // console.log(`User ${profile.id} email_confirmed_at:`, user?.email_confirmed_at);
+
       return {
         ...profile,
         email_confirmed_at: user?.email_confirmed_at

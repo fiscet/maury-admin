@@ -1,4 +1,5 @@
 import { createClient } from '@/utils/supabase/server';
+import { createAdminClient } from '@/utils/supabase/admin-client';
 import AdminDashboardClient from '@/components/AdminDashboardClient';
 import { redirect } from 'next/navigation';
 
@@ -33,5 +34,25 @@ export default async function CustomerPage() {
     .neq('role', 'admin') // Exclude admins
     .order('created_at', { ascending: false });
 
-  return <AdminDashboardClient initialProfiles={profiles || []} />;
+  // Fetch email confirmation status for each profile from auth.users using admin client
+  const adminClient = createAdminClient();
+  const processedProfiles = await Promise.all(
+    (profiles || []).map(async (profile) => {
+      const {
+        data: { user },
+        error
+      } = await adminClient.auth.admin.getUserById(profile.id);
+
+      if (error) {
+        console.error(`Error fetching user ${profile.id}:`, error);
+      }
+
+      return {
+        ...profile,
+        email_confirmed_at: user?.email_confirmed_at
+      };
+    })
+  );
+
+  return <AdminDashboardClient initialProfiles={processedProfiles} />;
 }
