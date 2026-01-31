@@ -1,11 +1,31 @@
 'use server';
 
 import { createAdminClient } from '@/utils/supabase/admin-client';
+import { createClient } from '@/utils/supabase/server';
 
 export async function getDocumentDownloadUrl(filePath: string) {
   try {
-    const supabase = createAdminClient();
-    const { data, error } = await supabase.storage
+    // 1. Check Auth & Admin Role
+    const supabaseUser = await createClient();
+    const { data: { user }, error: authError } = await supabaseUser.auth.getUser();
+
+    if (authError || !user) {
+      return { error: 'Unauthorized' };
+    }
+
+    const { data: profile } = await supabaseUser
+      .from('maury_profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (profile?.role !== 'admin') {
+      return { error: 'Forbidden' };
+    }
+
+    // 2. Generate Signed URL using Admin Client
+    const supabaseAdmin = createAdminClient();
+    const { data, error } = await supabaseAdmin.storage
       .from('documents')
       .createSignedUrl(filePath, 60);
 
