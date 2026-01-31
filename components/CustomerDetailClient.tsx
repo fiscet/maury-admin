@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import NotesModal from './NotesModal';
 import { Profile, Document } from '@/types';
@@ -13,34 +13,94 @@ import {
   HardDrive,
   Building2,
   Mail,
-  UserCheck
+  UserCheck,
+  Trash2
 } from 'lucide-react';
+import { deleteDocument } from '@/app/actions/delete-document';
+import { getDocumentDownloadUrl } from '@/app/actions/download-document';
+import { createClient } from '@/utils/supabase/client';
 
 interface CustomerDetailClientProps {
   profile: Profile;
   documents: Document[];
 }
 
-export default function CustomerDetailClient({ profile, documents }: CustomerDetailClientProps) {
+export default function CustomerDetailClient({
+  profile,
+  documents
+}: CustomerDetailClientProps) {
   const [selectedNoteDoc, setSelectedNoteDoc] = useState<Document | null>(null);
+  const [noteCounts, setNoteCounts] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    const fetchNoteCounts = async () => {
+      const supabase = createClient();
+      const docIds = documents.map((d) => d.id);
+      if (docIds.length === 0) return;
+
+      const { data } = await supabase
+        .from('maury_document_notes')
+        .select('document_id')
+        .in('document_id', docIds);
+
+      if (data) {
+        const counts: Record<string, number> = {};
+        data.forEach((note: { document_id: string }) => {
+          counts[note.document_id] = (counts[note.document_id] || 0) + 1;
+        });
+        setNoteCounts(counts);
+      }
+    };
+
+    fetchNoteCounts();
+  }, [documents]);
+
+  const updateCountFor = async (docId: string) => {
+    const supabase = createClient();
+    const { count } = await supabase
+      .from('maury_document_notes')
+      .select('*', { count: 'exact', head: true })
+      .eq('document_id', docId);
+
+    if (count !== null) {
+      setNoteCounts((prev) => ({ ...prev, [docId]: count }));
+    }
+  };
+
+  const docs = documents.map((d) => ({
+    ...d,
+    notesCount: noteCounts[d.id] || 0
+  }));
 
   const handleDownload = async (doc: Document) => {
     try {
-      const { createClient } = require('@/utils/supabase/client');
-      const supabase = createClient();
-      const { data, error } = await supabase
-        .storage
-        .from('documents')
-        .createSignedUrl(doc.file_path, 60);
+      const { signedUrl, error } = await getDocumentDownloadUrl(doc.file_path);
 
-      if (error) throw error;
-
-      if (data?.signedUrl) {
-        window.open(data.signedUrl, '_blank');
+      if (error) {
+        alert(error);
+        return;
       }
-    } catch (e: any) {
+
+      if (signedUrl) {
+        window.open(signedUrl, '_blank');
+      }
+    } catch (e) {
       console.error(e);
-      alert("Errore download");
+      alert('Errore download');
+    }
+  };
+
+  const handleDelete = async (doc: Document) => {
+    if (!confirm('Sei sicuro di voler eliminare questo documento?')) return;
+
+    try {
+      const result = await deleteDocument(doc.id, doc.file_path);
+      if (result.error) {
+        alert(result.error);
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Errore durante l'eliminazione");
     }
   };
 
@@ -70,7 +130,8 @@ export default function CustomerDetailClient({ profile, documents }: CustomerDet
               <div className="w-1 h-1 rounded-full bg-slate-300" />
               <div className="flex items-center gap-1.5">
                 <UserCheck className="w-4 h-4 text-slate-400" />
-                Iscritto il {new Date(profile.created_at).toLocaleDateString()}
+                Iscritto il{' '}
+                {new Date(profile.created_at).toLocaleDateString('it-IT')}
               </div>
             </div>
           </div>
@@ -81,7 +142,11 @@ export default function CustomerDetailClient({ profile, documents }: CustomerDet
         <NotesModal
           documentId={selectedNoteDoc.id}
           documentName={selectedNoteDoc.name}
-          onClose={() => setSelectedNoteDoc(null)}
+          onClose={() => {
+            const id = selectedNoteDoc.id;
+            setSelectedNoteDoc(null);
+            updateCountFor(id);
+          }}
         />
       )}
 
@@ -93,64 +158,178 @@ export default function CustomerDetailClient({ profile, documents }: CustomerDet
               <FileText className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="text-lg font-black text-slate-900 tracking-tight italic">Documenti Caricati</h3>
-              <p className="text-sm font-medium text-slate-500">Visualizza e gestisci i file caricati dal cliente.</p>
+              <h3 className="text-lg font-black text-slate-900 tracking-tight italic">
+                Documenti Caricati
+              </h3>
+              <p className="text-sm font-medium text-slate-500">
+                Visualizza e gestisci i file caricati dal cliente.
+              </p>
             </div>
           </div>
           <div className="px-4 py-2 bg-white border border-slate-200 rounded-lg shadow-sm">
-            <span className="text-xl font-black text-slate-900">{documents.length}</span>
-            <span className="ml-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">File</span>
+            <span className="text-xl font-black text-slate-900">
+              {documents.length}
+            </span>
+            <span className="ml-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+              File
+            </span>
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Mobile Document List */}
+        <div className="md:hidden divide-y divide-slate-100">
+          {docs.map((doc) => (
+            <div key={doc.id} className="p-6 flex flex-col gap-4">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 shrink-0">
+                  <FileText className="w-6 h-6" />
+                </div>
+                <div className="space-y-1 min-w-0 flex-1">
+                  <div className="font-bold text-slate-900 break-all">
+                    {doc.name}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500">
+                    <div className="flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                      <span className="font-bold text-slate-600">
+                        {doc.month}/{doc.year}
+                      </span>
+                    </div>
+                    <div className="w-1 h-1 rounded-full bg-slate-300" />
+                    <div className="flex items-center gap-1.5">
+                      <HardDrive className="w-3.5 h-3.5 text-slate-400" />
+                      <span className="font-bold text-slate-400 text-xs uppercase tracking-wider">
+                        {doc.size}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-xs font-medium text-slate-400 pt-1">
+                    Caricato il{' '}
+                    {new Date(doc.created_at).toLocaleDateString('it-IT')}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  onClick={() => setSelectedNoteDoc(doc)}
+                  className="relative p-3 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-xl transition-all bg-slate-50"
+                  title="Visualizza Note"
+                >
+                  <MessageSquare className="w-5 h-5" />
+                  {doc.notesCount !== undefined && doc.notesCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 text-white text-[9px] font-black rounded-full flex items-center justify-center border-2 border-white">
+                      {doc.notesCount}
+                    </span>
+                  )}
+                </button>
+                <button
+                  onClick={() => handleDelete(doc)}
+                  className="p-3 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all bg-slate-50"
+                  title="Elimina Documento"
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => handleDownload(doc)}
+                  className="flex-1 px-4 py-3 bg-slate-900 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-xl hover:bg-primary transition-all shadow-sm active:scale-[0.97] flex items-center justify-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Scarica
+                </button>
+              </div>
+            </div>
+          ))}
+
+          {documents.length === 0 && (
+            <div className="p-10 text-center">
+              <div className="flex flex-col items-center gap-3">
+                <FileText className="w-12 h-12 text-slate-200" />
+                <p className="text-slate-400 font-medium italic">
+                  Nessun documento è stato ancora caricato da questo cliente.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/30 border-b border-slate-100">
-                <th className="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Tipo</th>
-                <th className="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Nome File</th>
-                <th className="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Periodo</th>
-                <th className="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Caricato</th>
-                <th className="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Peso</th>
-                <th className="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">Azioni</th>
+                <th className="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">
+                  Tipo
+                </th>
+                <th className="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                  Nome File
+                </th>
+                <th className="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                  Periodo
+                </th>
+                <th className="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                  Caricato
+                </th>
+                <th className="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                  Peso
+                </th>
+                <th className="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">
+                  Azioni
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {documents.map((doc) => (
-                <tr key={doc.id} className="hover:bg-slate-50/80 transition-colors group">
-                  <td className="px-8 py-8 text-center">
+              {docs.map((doc) => (
+                <tr
+                  key={doc.id}
+                  className="hover:bg-slate-50/80 transition-colors group"
+                >
+                  <td className="px-8 py-4 text-center">
                     <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-primary/10 group-hover:text-primary transition-colors mx-auto">
                       <FileText className="w-6 h-6" />
                     </div>
                   </td>
-                  <td className="px-8 py-8">
-                    <div className="font-bold text-slate-900 group-hover:text-primary transition-colors">{doc.name}</div>
+                  <td className="px-8 py-4">
+                    <div className="font-bold text-slate-900 group-hover:text-primary transition-colors">
+                      {doc.name}
+                    </div>
                   </td>
-                  <td className="px-8 py-8">
+                  <td className="px-8 py-4">
                     <div className="flex items-center gap-2 text-sm font-bold text-slate-600">
                       <Calendar className="w-4 h-4 text-slate-400" />
                       {doc.month}/{doc.year}
                     </div>
                   </td>
-                  <td className="px-8 py-8">
+                  <td className="px-8 py-4">
                     <div className="text-sm font-medium text-slate-500">
-                      {new Date(doc.created_at).toLocaleDateString()}
+                      {new Date(doc.created_at).toLocaleDateString('it-IT')}
                     </div>
                   </td>
-                  <td className="px-8 py-8">
+                  <td className="px-8 py-4">
                     <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-widest">
                       <HardDrive className="w-4 h-4" />
                       {doc.size}
                     </div>
                   </td>
-                  <td className="px-8 py-8 text-right">
+                  <td className="px-8 py-4 text-right">
                     <div className="flex justify-end gap-4">
                       <button
                         onClick={() => setSelectedNoteDoc(doc)}
-                        className="p-3 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-xl transition-all"
+                        className="relative p-3 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-xl transition-all"
                         title="Visualizza Note"
                       >
                         <MessageSquare className="w-6 h-6" />
+                        {doc.notesCount !== undefined && doc.notesCount > 0 && (
+                          <span className="absolute top-1 right-1 w-5 h-5 bg-rose-500 text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white">
+                            {doc.notesCount}
+                          </span>
+                        )}
+                      </button>
+                      <button
+                        onClick={() => handleDelete(doc)}
+                        className="p-3 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
+                        title="Elimina Documento"
+                      >
+                        <Trash2 className="w-6 h-6" />
                       </button>
                       <button
                         onClick={() => handleDownload(doc)}
@@ -168,7 +347,10 @@ export default function CustomerDetailClient({ profile, documents }: CustomerDet
                   <td colSpan={6} className="px-8 py-20 text-center">
                     <div className="flex flex-col items-center gap-3">
                       <FileText className="w-12 h-12 text-slate-200" />
-                      <p className="text-slate-400 font-medium italic">Nessun documento è stato ancora caricato da questo cliente.</p>
+                      <p className="text-slate-400 font-medium italic">
+                        Nessun documento è stato ancora caricato da questo
+                        cliente.
+                      </p>
                     </div>
                   </td>
                 </tr>

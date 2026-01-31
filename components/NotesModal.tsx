@@ -11,12 +11,44 @@ interface NotesModalProps {
   onClose: () => void;
 }
 
-export default function NotesModal({ documentId, documentName, onClose }: NotesModalProps) {
+export default function NotesModal({
+  documentId,
+  documentName,
+  onClose
+}: NotesModalProps) {
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const supabase = createClient();
 
+  const fetchNotes = async () => {
+    if (notes.length === 0) setLoading(true);
+    const { data, error } = await supabase
+      .from('maury_document_notes')
+      .select('*')
+      .eq('document_id', documentId)
+      .order('created_at', { ascending: true });
+
+    if (data) {
+      setNotes(data);
+    }
+    setLoading(false);
+  };
+
   useEffect(() => {
+    // Auth Check
+    const {
+      data: { subscription }
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setCurrentUserId(session.user.id);
+      }
+    });
+
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) setCurrentUserId(user.id);
+    });
+
     fetchNotes();
 
     // Realtime Subscription
@@ -42,33 +74,19 @@ export default function NotesModal({ documentId, documentName, onClose }: NotesM
     };
   }, [documentId]);
 
-  const fetchNotes = async () => {
-    if (notes.length === 0) setLoading(true);
-    const { data, error } = await supabase
-      .from('maury_document_notes')
-      .select('*')
-      .eq('document_id', documentId)
-      .order('created_at', { ascending: true });
-
-    if (data) {
-      setNotes(data);
-    }
-    setLoading(false);
-  };
-
   const handleSend = async (content: string) => {
     if (!content.trim()) return;
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user }
+    } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { error } = await supabase
-      .from('maury_document_notes')
-      .insert({
-        document_id: documentId,
-        content: content,
-        author_id: user.id
-      });
+    const { error } = await supabase.from('maury_document_notes').insert({
+      document_id: documentId,
+      content: content,
+      author_id: user.id
+    });
 
     if (!error) {
       fetchNotes();
@@ -85,6 +103,7 @@ export default function NotesModal({ documentId, documentName, onClose }: NotesM
       notes={notes}
       onSend={(content) => handleSend(content)}
       loading={loading}
+      currentUserId={currentUserId}
     />
   );
-};
+}

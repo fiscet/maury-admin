@@ -3,7 +3,7 @@ import { createAdminClient } from '@/utils/supabase/admin-client';
 import AdminDashboardClient from '@/components/AdminDashboardClient';
 import { redirect } from 'next/navigation';
 
-export default async function Dashboard() {
+export default async function CustomerPage() {
   const supabase = await createClient();
 
   // Check if user is authenticated
@@ -32,8 +32,7 @@ export default async function Dashboard() {
     .from('maury_profiles')
     .select('*')
     .neq('role', 'admin') // Exclude admins
-    .order('created_at', { ascending: false })
-    .limit(10);
+    .order('created_at', { ascending: false });
 
   // Fetch email confirmation status for each profile from auth.users using admin client
   const adminClient = createAdminClient();
@@ -47,7 +46,6 @@ export default async function Dashboard() {
       if (error) {
         console.error(`Error fetching user ${profile.id}:`, error);
       }
-      // console.log(`User ${profile.id} email_confirmed_at:`, user?.email_confirmed_at);
 
       return {
         ...profile,

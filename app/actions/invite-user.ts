@@ -40,8 +40,10 @@ export async function inviteUser(formData: FormData) {
       return { error: error.message };
     }
 
-    // 3. Revalidate the users list page
-    revalidatePath('/users');
+    // No need to update invitation status here - we'll use email_confirmed_at from auth.users
+
+    // 4. Revalidate the users list page
+    revalidatePath('/dashboard');
 
     return { success: true, message: `Invite sent to ${email}` };
   } catch (err: any) {

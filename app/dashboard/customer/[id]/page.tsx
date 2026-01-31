@@ -1,10 +1,14 @@
-import { createClient } from '@/utils/supabase/server';
+import { createAdminClient } from '@/utils/supabase/admin-client';
 import CustomerDetailClient from '@/components/CustomerDetailClient';
 import { notFound } from 'next/navigation';
 
-export default async function CustomerDetailPage({ params }: { params: Promise<{ id: string; }>; }) {
+export default async function CustomerDetailPage({
+  params
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const { id } = await params;
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   // Fetch Profile
   const { data: profile } = await supabase
@@ -24,10 +28,5 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
     .eq('user_id', id)
     .order('created_at', { ascending: false });
 
-  return (
-    <CustomerDetailClient
-      profile={profile}
-      documents={documents || []}
-    />
-  );
+  return <CustomerDetailClient profile={profile} documents={documents || []} />;
 }

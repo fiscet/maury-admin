@@ -16,7 +16,7 @@ import { createBrowserClient } from '@supabase/ssr';
 const navItems = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Clienti', href: '/dashboard/customer', icon: Users },
-  { name: 'Il mio Profilo', href: '/dashboard/profile', icon: User },
+  { name: 'Il mio Profilo', href: '/dashboard/profile', icon: User }
 ];
 
 interface SidebarProps {
@@ -34,21 +34,25 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    window.location.href = '/auth/login';
+    window.location.href = '/';
   };
 
   return (
     <>
       {/* Mobile Overlay */}
       <div
-        className={`fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
-          }`}
+        className={`fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-300 ${
+          isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
         onClick={onClose}
       />
 
       {/* Sidebar */}
-      <aside className={`fixed left-0 top-0 h-screen w-72 bg-slate-900 text-slate-300 flex flex-col shadow-2xl z-50 transition-transform duration-300 ease-in-out lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}>
+      <aside
+        className={`fixed left-0 top-0 h-screen w-72 bg-slate-900 text-slate-300 flex flex-col shadow-2xl z-50 transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+          isOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
         {/* Brand Logo */}
         <div className="p-8 border-b border-white/5 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -56,11 +60,18 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               <span className="text-white font-bold text-xl">HM</span>
             </div>
             <div>
-              <h1 className="text-white font-bold text-lg leading-none tracking-tight">HM Management</h1>
-              <p className="text-primary text-[10px] uppercase font-bold tracking-[0.2em] mt-1">Admin Portal</p>
+              <h1 className="text-white font-bold text-lg leading-none tracking-tight">
+                HM Management
+              </h1>
+              <p className="text-primary text-[10px] uppercase font-bold tracking-[0.2em] mt-1">
+                Admin Portal
+              </p>
             </div>
           </div>
-          <button onClick={onClose} className="lg:hidden p-2 text-slate-400 hover:text-white transition-colors">
+          <button
+            onClick={onClose}
+            className="lg:hidden p-2 text-slate-400 hover:text-white transition-colors"
+          >
             <X className="w-6 h-6" />
           </button>
         </div>
@@ -76,14 +87,23 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 onClick={() => {
                   if (window.innerWidth < 1024) onClose();
                 }}
-                className={`flex items-center justify-between p-4 rounded-xl transition-all duration-200 group ${isActive
-                  ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                  : 'hover:bg-white/5 hover:text-white'
-                  }`}
+                className={`flex items-center justify-between p-4 rounded-xl transition-all duration-200 group ${
+                  isActive
+                    ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                    : 'hover:bg-white/5 hover:text-white'
+                }`}
               >
                 <div className="flex items-center gap-4">
-                  <item.icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-primary'}`} />
-                  <span className="font-semibold text-sm tracking-tight">{item.name}</span>
+                  <item.icon
+                    className={`w-5 h-5 ${
+                      isActive
+                        ? 'text-white'
+                        : 'text-slate-400 group-hover:text-primary'
+                    }`}
+                  />
+                  <span className="font-semibold text-sm tracking-tight">
+                    {item.name}
+                  </span>
                 </div>
                 {isActive && <ChevronRight className="w-4 h-4 text-white/50" />}
               </Link>
