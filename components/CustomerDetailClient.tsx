@@ -176,7 +176,84 @@ export default function CustomerDetailClient({
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Mobile Document List */}
+        <div className="md:hidden divide-y divide-slate-100">
+          {docs.map((doc) => (
+            <div key={doc.id} className="p-6 flex flex-col gap-4">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 shrink-0">
+                  <FileText className="w-6 h-6" />
+                </div>
+                <div className="space-y-1 min-w-0 flex-1">
+                  <div className="font-bold text-slate-900 break-all">
+                    {doc.name}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500">
+                    <div className="flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                      <span className="font-bold text-slate-600">
+                        {doc.month}/{doc.year}
+                      </span>
+                    </div>
+                    <div className="w-1 h-1 rounded-full bg-slate-300" />
+                    <div className="flex items-center gap-1.5">
+                      <HardDrive className="w-3.5 h-3.5 text-slate-400" />
+                      <span className="font-bold text-slate-400 text-xs uppercase tracking-wider">
+                        {doc.size}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-xs font-medium text-slate-400 pt-1">
+                    Caricato il{' '}
+                    {new Date(doc.created_at).toLocaleDateString('it-IT')}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  onClick={() => setSelectedNoteDoc(doc)}
+                  className="relative p-3 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-xl transition-all bg-slate-50"
+                  title="Visualizza Note"
+                >
+                  <MessageSquare className="w-5 h-5" />
+                  {doc.notesCount !== undefined && doc.notesCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 text-white text-[9px] font-black rounded-full flex items-center justify-center border-2 border-white">
+                      {doc.notesCount}
+                    </span>
+                  )}
+                </button>
+                <button
+                  onClick={() => handleDelete(doc)}
+                  className="p-3 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all bg-slate-50"
+                  title="Elimina Documento"
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => handleDownload(doc)}
+                  className="flex-1 px-4 py-3 bg-slate-900 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-xl hover:bg-primary transition-all shadow-sm active:scale-[0.97] flex items-center justify-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Scarica
+                </button>
+              </div>
+            </div>
+          ))}
+
+          {documents.length === 0 && (
+            <div className="p-10 text-center">
+              <div className="flex flex-col items-center gap-3">
+                <FileText className="w-12 h-12 text-slate-200" />
+                <p className="text-slate-400 font-medium italic">
+                  Nessun documento è stato ancora caricato da questo cliente.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/30 border-b border-slate-100">
@@ -206,34 +283,34 @@ export default function CustomerDetailClient({
                   key={doc.id}
                   className="hover:bg-slate-50/80 transition-colors group"
                 >
-                  <td className="px-8 py-8 text-center">
+                  <td className="px-8 py-4 text-center">
                     <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-primary/10 group-hover:text-primary transition-colors mx-auto">
                       <FileText className="w-6 h-6" />
                     </div>
                   </td>
-                  <td className="px-8 py-8">
+                  <td className="px-8 py-4">
                     <div className="font-bold text-slate-900 group-hover:text-primary transition-colors">
                       {doc.name}
                     </div>
                   </td>
-                  <td className="px-8 py-8">
+                  <td className="px-8 py-4">
                     <div className="flex items-center gap-2 text-sm font-bold text-slate-600">
                       <Calendar className="w-4 h-4 text-slate-400" />
                       {doc.month}/{doc.year}
                     </div>
                   </td>
-                  <td className="px-8 py-8">
+                  <td className="px-8 py-4">
                     <div className="text-sm font-medium text-slate-500">
                       {new Date(doc.created_at).toLocaleDateString('it-IT')}
                     </div>
                   </td>
-                  <td className="px-8 py-8">
+                  <td className="px-8 py-4">
                     <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-widest">
                       <HardDrive className="w-4 h-4" />
                       {doc.size}
                     </div>
                   </td>
-                  <td className="px-8 py-8 text-right">
+                  <td className="px-8 py-4 text-right">
                     <div className="flex justify-end gap-4">
                       <button
                         onClick={() => setSelectedNoteDoc(doc)}

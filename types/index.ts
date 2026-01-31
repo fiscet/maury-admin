@@ -4,6 +4,7 @@ export interface Profile {
   company_name: string;
   role: 'admin' | 'customer';
   created_at: string;
+  email_confirmed_at?: string;
 }
 
 export interface Document {
