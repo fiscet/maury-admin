@@ -142,7 +142,7 @@ export default function AdminDashboardClient({
               </div>
 
               <div className="flex items-center justify-between mt-2">
-                <span className="px-4 py-1.5 bg-emerald-50 text-emerald-700 text-[10px] font-black uppercase tracking-[0.2em] rounded-full border border-emerald-100">
+                <span className="px-4 py-1.5 bg-sky-50 text-sky-700 text-[10px] font-black uppercase tracking-[0.2em] rounded-full border border-sky-100">
                   Cliente
                 </span>
 
@@ -223,7 +223,7 @@ export default function AdminDashboardClient({
                     </div>
                   </td>
                   <td className="px-8 py-8">
-                    <span className="px-4 py-1.5 bg-emerald-50 text-emerald-700 text-[10px] font-black uppercase tracking-[0.2em] rounded-full border border-emerald-100">
+                    <span className="px-4 py-1.5 bg-sky-50 text-sky-700 text-[10px] font-black uppercase tracking-[0.2em] rounded-full border border-sky-100">
                       Cliente
                     </span>
                   </td>
