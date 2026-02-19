@@ -1,7 +1,7 @@
 import { createAdminClient } from '@/utils/supabase/admin-client';
 import { NextResponse } from 'next/server';
 
-export async function POST() {
+async function handlePing() {
   const supabase = createAdminClient();
 
   // Get today's date at midnight (start of day)
@@ -48,4 +48,14 @@ export async function POST() {
   }
 
   return NextResponse.json({ message: 'Pinged today' }, { status: 200 });
+}
+
+// GET handler for Vercel Cron Jobs
+export async function GET() {
+  return handlePing();
+}
+
+// POST handler for manual API calls
+export async function POST() {
+  return handlePing();
 }
